@@ -1,0 +1,10 @@
+services:
+  tamu-ai-discord-bot:
+    build: .
+    image: tamu-ai-discord-bot
+    container_name: tamu-ai-mevin
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - ./memories:/app/memories

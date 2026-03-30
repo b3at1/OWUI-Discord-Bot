@@ -1,0 +1,79 @@
+--- ../.venv/lib/python3.14/site-packages/openwebui_client/client.py	2026-03-28 23:41:57.520406994 -0500
++++ ../.venv/lib/python3.14/site-packages/openwebui_client/client.py	2026-03-28 23:33:47.715569212 -0500
+@@ -13,6 +13,7 @@
+ from openai.types.chat.chat_completion_tool_message_param import (
+     ChatCompletionToolMessageParam,
+ )
++from openai.types.file_object import FileObject
+
+ from .completions import OpenWebUICompletions
+ from .files import OpenWebUIFiles
+@@ -87,7 +88,7 @@
+         tool_params: Optional[Dict[str, Dict[str, Any]]] = None,
+         model: Optional[str] = None,
+         max_tool_calls: int = 5,
+-        files: Iterable[Path] = [],
++        files: Iterable[Path | FileObject] = [],
+     ) -> str:
+         """Send a chat completion request and handle tool calls automatically.
+
+@@ -100,7 +101,7 @@
+             tool_params: Optional parameters to pass to the tools when they are called
+             model: Model to use (defaults to the client's default model)
+             max_tool_calls: Maximum number of tool call rounds to allow
+-            files: Optional list of Path objects to files that should be included with the request
++            files: Optional list of Path objects or FileObject instances to files that should be included with the request
+
+         Returns:
+             The final assistant message content (str) after all tool calls are processed
+@@ -122,7 +123,14 @@
+             tool_params = {}
+
+         conversation: List[ChatCompletionMessageParam] = messages.copy()
+-        file_refs = self.files.from_paths([(file, None) for file in files])
++        file_refs: List[FileObject] = []
++        for file in files:
++            if isinstance(file, Path):
++                file_refs.extend(self.files.from_paths([(file, None)]))
++            elif isinstance(file, FileObject):
++                file_refs.append(file)
++            else:
++                raise ValueError(f"Invalid file type: {type(file)}. Must be Path or FileObject.")
+
+         # Conversation is now a list that we can mutate
+         tool_call_count = 
+@@ -168,6 +168,7 @@
+                 "tools": tool_schemas,
+                 "tool_choice": "auto",
+                 "files": file_refs,
++                "stream": False,
+             }
+             _logger.debug(f"Args: {args}")
+             response = self.chat.completions.create(**args)
+             
+--- ../.venv/lib/python3.14/site-packages/openwebui_client/files.py	2026-03-28 23:41:57.520406994 -0500
++++ ../.venv/lib/python3.14/site-packages/openwebui_client/files.py	2026-03-28 23:44:58.784547572 -0500
+@@ -89,6 +89,14 @@
+                 raise ValueError(response_data.get("error"))
+ 
+             # Convert the response to an OpenAI FileObject with required defaults
++
++            # TODO: figure out why status returns True for some reason and the real status is in 'data': {'status': }
++            status = response_data.get("status", "processed")
++            if status == True:
++                status = response_data.get("data", {}).get("status", "processed")
++                if status not in ["uploaded", "processed", "error"]:
++                    status = "error"
++
+             file_object = FileObject(
+                 id=response_data.get("id", f"file-{str(file.name)}"),
+                 bytes=response_data.get(
+@@ -100,7 +108,7 @@
+                 filename=response_data.get("filename", file.name),
+                 object="file",  # Required fixed value
+                 purpose=response_data.get("purpose", "assistants"),  # Default purpose
+-                status=response_data.get("status", "processed"),  # Default status
++                status=status,
+                 status_details=response_data.get("status_details"),
+             )
+ 
