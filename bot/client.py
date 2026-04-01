@@ -34,7 +34,7 @@ class discordClient(discord.Client):
         self.conversation_history: list[ConversationMessage] = []
         self.current_channel: discord.abc.Messageable | None = None
         self.activity = discord.Activity(
-            type=discord.ActivityType.listening, name="hi im mevin")
+            type=discord.ActivityType.listening, name="g-g-g-gevin it up!")
         self.isPrivate: bool = False
         self.is_replying_all: str | None = os.getenv("REPLYING_ALL")
         self.replying_all_discord_channel_id: str | None = os.getenv(

@@ -6,14 +6,14 @@ from ..log import logger
 
 def format_author(author: discord.abc.User) -> str:
     if author.display_name != author.name:
-        return f"{author.name} (aka {author.display_name})"
-    return author.name
+        return f"{author.name} (aka {author.display_name}) <@{author.id}>"
+    return f"{author.name} <@{author.id}>"
 
 
 def resolve_mentions(message: Message) -> str:
     content = message.content
     for user in message.mentions:
-        display = f"@USER[{user.name}]"
+        display = f"<@{user.id}> ({user.name})"
         content = content.replace(f"<@{user.id}>", display)
         content = content.replace(f"<@!{user.id}>", display)
     for channel in message.channel_mentions:
