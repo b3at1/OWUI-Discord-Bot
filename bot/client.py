@@ -28,7 +28,7 @@ class discordClient(discord.Client):
     def __init__(self) -> None:
         intents = discord.Intents.default()
         intents.message_content = True
-        super().__init__(intents=intents)
+        super().__init__(intents=intents, allowed_mentions=discord.AllowedMentions(everyone=False, users=True, roles=False))
         self.tree = app_commands.CommandTree(self)
         self.chatModel: str | None = os.getenv("MODEL")
         self.conversation_history: list[ConversationMessage] = []
